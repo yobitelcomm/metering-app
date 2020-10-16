@@ -1,0 +1,62 @@
+# An example of ClusterConfig with IAMServiceAccounts:
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: ash-cluster
+  region: us-east-1
+
+iam:
+  withOIDC: true
+  serviceAccounts:
+  - metadata:
+      name: registerusage
+      # if no namespace is set, "default" will be used;
+      # the namespace will be created if it doesn't exist already
+      namespace: cacti
+    attachPolicyARNs:
+    - "arn:aws:iam::aws:policy/AWSMarketplaceMeteringRegisterUsage"
+    - "arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess"
+    - "arn:aws:iam::aws:policy/AmazonElastiCacheFullAccess"
+    tags:
+      Owner: "ashwitha"
+      Team: "yobitel"
+  - metadata:
+      name: cluster-autoscaler
+      namespace: cacti
+    attachPolicy: # inline policy can be defined along with `attachPolicyARNs`
+      Version: "2012-10-17"
+      Statement:
+      - Effect: Allow
+        Action:
+        - "autoscaling:DescribeAutoScalingGroups"
+        - "autoscaling:DescribeAutoScalingInstances"
+        - "autoscaling:DescribeLaunchConfigurations"
+        - "autoscaling:DescribeTags"
+        - "autoscaling:SetDesiredCapacity"
+        - "autoscaling:TerminateInstanceInAutoScalingGroup"
+        Resource: '*'
+nodeGroups:
+  - name: "eks"
+    instanceType: t3.medium
+    tags:
+      # EC2 tags required for cluster-autoscaler auto-discovery
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/ash-clu: "owned"
+    desiredCapacity: 3
+    iam:
+      withAddonPolicies:
+        imageBuilder: true
+        autoScaler: true
+        externalDNS: true
+        certManager: true
+        appMesh: true
+        appMeshPreview: true
+        ebs: true
+        fsx: true
+        efs: true
+        albIngress: true
+        xRay: true
+        cloudWatch: true
+
